@@ -4,6 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "scalehls/Transforms/Passes.h"
@@ -133,8 +134,11 @@ struct ConvertGetGlobalToConstBuffer
                                 PatternRewriter &rewriter) const override {
     auto global = SymbolTable::lookupNearestSymbolFrom<memref::GlobalOp>(
         op, op.getNameAttr());
-    rewriter.replaceOpWithNewOp<ConstBufferOp>(op, global.getType(),
-                                               global.getConstantInitValue());
+    // rewriter.replaceOpWithNewOp<ConstBufferOp>(op, global.getType(),
+    //                                            global.getConstantInitValue());
+    auto init_value = global.getConstantInitValue();
+    auto empty_value = DenseElementsAttr::get(init_value.getType(), (std::uint8_t)0);
+    rewriter.replaceOpWithNewOp<ConstBufferOp>(op, global.getType(), empty_value);
     return success();
   }
 };

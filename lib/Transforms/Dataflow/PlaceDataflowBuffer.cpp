@@ -23,9 +23,14 @@ struct PlaceBuffer : public OpRewritePattern<func::FuncOp> {
   // TODO: For now, we use a heuristic to determine the buffer location.
   MemRefType getPlacedType(MemRefType type, bool isConstBuffer) const {
     auto kind = MemoryKind::BRAM_T2P;
-    if (placeExternalBuffer)
-      kind = type.getNumElements() >= threshold ? MemoryKind::DRAM
+    if (placeExternalBuffer) {
+      if (isConstBuffer) {
+        kind = type.getNumElements() >= threshold ? MemoryKind::URAM_T2P
                                                 : MemoryKind::BRAM_T2P;
+      } else {
+        kind = MemoryKind::BRAM_T2P;
+      }
+    }
     auto newType = MemRefType::get(
         type.getShape(), type.getElementType(), type.getLayout().getAffineMap(),
         MemoryKindAttr::get(type.getContext(), kind));
@@ -43,7 +48,7 @@ struct PlaceBuffer : public OpRewritePattern<func::FuncOp> {
                                 PatternRewriter &rewriter) const override {
     for (auto arg : func.getArguments())
       if (auto type = arg.getType().dyn_cast<MemRefType>())
-        arg.setType(getPlacedType(type, false));
+        arg.setType(getPlacedOnDramType(type));
 
     func.walk([&](hls::BufferLikeInterface buffer) {
       buffer.getMemref().setType(getPlacedType(
@@ -78,8 +83,8 @@ struct HoistDramBuffer
 
   LogicalResult matchAndRewrite(hls::BufferLikeInterface buffer,
                                 PatternRewriter &rewriter) const override {
-    if (!isExtBuffer(buffer.getMemref()))
-      return failure();
+    // if (!isExtBuffer(buffer.getMemref()))
+    //   return failure();
     // Alwasy move external buffer out of task.
     if (auto task = buffer->getParentOfType<TaskOp>()) {
       buffer->moveBefore(task);

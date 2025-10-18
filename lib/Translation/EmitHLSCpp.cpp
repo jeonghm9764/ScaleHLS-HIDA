@@ -768,8 +768,11 @@ void ModuleEmitter::emitAxiPort(AxiPortOp op) {
   //   os << name;
   //   os << " bundle=" << op.getBundleName() << "\n";
   // }
-  // An empty line.
-  os << "\n";
+
+  // Emit binding for control bus.
+  indent() << "#pragma HLS INTERFACE s_axilite port=";
+  emitValue(op.getElement());
+  os << " bundle=ctrl\n";
 }
 
 void ModuleEmitter::emitPrimMul(PrimMulOp op) {
@@ -1036,7 +1039,13 @@ void ModuleEmitter::emitAffineFor(AffineForOp op) {
 
   // Emit increase step.
   emitValue(iterVar);
-  os << " += " << op.getStep() << ") {";
+  auto step = op.getStep();
+  if (step == 1) {
+    os << "++";
+  } else {
+    os << " += " << step;
+  }
+  os << ") {";
   emitInfoAndNewLine(op);
 
   addIndent();
@@ -1647,14 +1656,19 @@ template <typename OpType> void ModuleEmitter::emitConstant(OpType op) {
     auto type =
         op.getResult().getType().template cast<MemRefType>().getElementType();
 
-    unsigned elementIdx = 0;
-    for (auto element : denseAttr.template getValues<Attribute>()) {
-      auto string = getConstantString(type, element);
-      if (string.empty())
-        op.emitOpError("constant has invalid value");
+    if (denseAttr.isSplat()) {
+      auto string = getConstantString(type, denseAttr.template getSplatValue<Attribute>());
       os << string;
-      if (elementIdx++ != denseAttr.getNumElements() - 1)
-        os << ", ";
+    } else {
+      unsigned elementIdx = 0;
+      for (auto element : denseAttr.template getValues<Attribute>()) {
+        auto string = getConstantString(type, element);
+        if (string.empty())
+          op.emitOpError("constant has invalid value");
+        os << string;
+        if (elementIdx++ != denseAttr.getNumElements() - 1)
+          os << ", ";
+      }
     }
     os << "};";
     emitInfoAndNewLine(op);
