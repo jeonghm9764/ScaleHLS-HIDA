@@ -85,6 +85,9 @@ forwardStoreToLoad(mlir::AffineReadOpInterface loadOp,
   if (!lastWriteStoreOp)
     return loadOp;
 
+  //lastWriteStoreOp.dump();
+  //loadOp.dump();
+
   // Perform the actual store to load forwarding.
   Value storeVal = lastWriteStoreOp.getValueToStore();
   // Check if 2 values have the same shape. This is needed for affine vector
@@ -135,11 +138,20 @@ static void findUnusedStore(mlir::AffineWriteOpInterface writeA,
                             SmallPtrSetImpl<Value> &memrefsToErase,
                             PostDominanceInfo &postDominanceInfo) {
   auto memref = writeA.getMemRef();
+  llvm::dbgs() << "writeA" << "\n";
+  writeA.dump();
+
+  // auto retOp = writeA->getParentOfType<func::FuncOp>().front().getTerminator();
+  // llvm::dbgs() << hasNoInterveningEffect<MemoryEffects::Read>(writeA, retOp, writeA.getMemRef()) << "\n";
+
   for (Operation *user : writeA.getMemRef().getUsers()) {
     // Only consider writing operations.
     auto writeB = dyn_cast<mlir::AffineWriteOpInterface>(user);
     if (!writeB)
       continue;
+
+    llvm::dbgs() << "writeB" << "\n";
+    writeB.dump();
 
     // The operations must be distinct.
     if (writeB == writeA)
@@ -200,6 +212,8 @@ static void findUnusedStore(mlir::AffineWriteOpInterface writeA,
     opsToErase.push_back(targetA);
     break;
   }
+
+  
 
   if (llvm::all_of(memref.getUsers(), [&](Operation *ownerOp) {
         return isa<mlir::AffineWriteOpInterface>(ownerOp) ||

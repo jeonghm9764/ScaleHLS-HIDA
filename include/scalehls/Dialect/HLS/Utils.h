@@ -13,6 +13,8 @@
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "scalehls/Dialect/HLS/HLS.h"
 
+#include "llvm/Support/Debug.h"
+
 namespace mlir {
 namespace scalehls {
 
@@ -338,6 +340,10 @@ bool hasNoInterveningEffect(Operation *start, Operation *memOp, Value memref) {
   // given memory effect.
   std::function<void(Operation *, Operation *)> recur =
       [&](Operation *from, Operation *untilOp) {
+        llvm::dbgs() << "from" << "\n";
+        from->dump();
+        llvm::dbgs() << "until" << "\n";
+        untilOp->dump();
         assert(
             from->getParentRegion()->isAncestor(untilOp->getParentRegion()) &&
             "Checking for side effect between two operations without a common "

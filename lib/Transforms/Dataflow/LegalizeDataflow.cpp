@@ -202,7 +202,11 @@ struct LegalizeDataflow : public LegalizeDataflowBase<LegalizeDataflow> {
       (void)applyOpPatternsAndFold(schedule, frozenPatterns);
 
       if (llvm::all_of(schedule.getOps<NodeOp>(),
-                       [](NodeOp node) { return node.getLevel(); }))
+                       [](NodeOp node) {
+                        node.dump();
+                        llvm::dbgs() << node.getLevel() << "\n";
+                        return node.getLevel();
+                      }))
         schedule.setIsLegalAttr(UnitAttr::get(context));
     });
 

@@ -31,8 +31,11 @@ struct ALAPScheduleNode : public OpRewritePattern<NodeOp> {
       // dependencies associated with them are handled later by tokens.
       if (!isExtBuffer(output) && !ignoreViolations)
         if (getDependentConsumers(output, node).size() > 1 ||
-            getProducers(output).size() > 1)
+            getProducers(output).size() > 1) {
+              llvm::dbgs() << getDependentConsumers(output, node).size() << " " << getProducers(output).size() << "\n";
+              node.dump();
           return failure();
+            }
 
       for (auto consumer : getDependentConsumers(output, node)) {
         if (!consumer.getLevel())

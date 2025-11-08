@@ -4,6 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Support/Debug.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "scalehls/Transforms/Passes.h"
 #include "scalehls/Transforms/Utils.h"
@@ -25,9 +26,13 @@ struct InsertForkNode : public OpRewritePattern<NodeOp> {
       // DRAM buffer is not considered - the dependencies associated with them
       // are handled later by tokens.
       // if (isExtBuffer(output))
-      continue;
+      //  continue;
 
       auto consumers = getDependentConsumers(output, node);
+
+      node.dump();
+      llvm::dbgs() << consumers.size() << "\n";
+
       if (consumers.size() < 2)
         continue;
 
@@ -71,6 +76,8 @@ struct EliminateMultiConsumer
     mlir::RewritePatternSet patterns(context);
     patterns.add<InsertForkNode>(context);
     (void)applyPatternsAndFoldGreedily(func, std::move(patterns));
+
+    func.dump();
   }
 };
 } // namespace
